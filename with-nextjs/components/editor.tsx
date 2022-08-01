@@ -6,6 +6,8 @@ import {
   PlaceholderExtension,
   Remirror,
   TableExtension,
+  useEditorEvent,
+  useHelpers,
   useRemirror,
 } from "@remirror/react";
 import { useCallback, useState } from "react";
@@ -44,13 +46,16 @@ const Editor: React.FC = () => {
     return content ? JSON.parse(content) : undefined;
   });
 
-  const handleEditorChange = useCallback((json: RemirrorJSON) => {
-    // Store the JSON in localStorage
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
+  const handleEditorChange = useCallback(
+    (json: RemirrorJSON) => {
+      // Store the JSON in localStorage
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
 
-    // UNCOMMENT TO BREAK
-    // mutation.mutate(json);
-  }, []);
+      // UNCOMMENT TO BREAK
+      mutation.mutate(json);
+    },
+    [mutation]
+  );
 
   return (
     <CoreEditor onChange={handleEditorChange} initialContent={initialContent} />
@@ -61,6 +66,18 @@ interface MyEditorProps {
   onChange: (json: RemirrorJSON) => void;
   initialContent?: RemirrorJSON;
 }
+
+const OnBlurJSON: React.FC<{ handler: any }> = ({ handler }) => {
+  const { getJSON } = useHelpers();
+
+  useEditorEvent("blur", (inp) => {
+    console.log("GETTING JSON");
+    const json = getJSON();
+    handler(json);
+  });
+
+  return null;
+};
 
 const CoreEditor: React.FC<MyEditorProps> = ({ onChange, initialContent }) => {
   const extensions = useCallback(
@@ -104,6 +121,7 @@ const CoreEditor: React.FC<MyEditorProps> = ({ onChange, initialContent }) => {
         initialContent={initialContent}
       >
         <OnChangeJSON onChange={onChange} />
+        {/* <OnBlurJSON handler={onChange} /> */}
       </Remirror>
     </div>
   );
