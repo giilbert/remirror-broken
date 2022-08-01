@@ -32,6 +32,8 @@ import { useMutation } from "@tanstack/react-query";
 
 const STORAGE_KEY = "remirror-editor-content";
 
+let pin: any | null = null;
+
 const Editor: React.FC = () => {
   const mutation = useMutation((data: RemirrorJSON) => {
     return fetch("/api/hello", {
@@ -46,15 +48,23 @@ const Editor: React.FC = () => {
     return content ? JSON.parse(content) : undefined;
   });
 
-  const handleEditorChange = useCallback(
-    (json: RemirrorJSON) => {
-      // Store the JSON in localStorage
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
+  if (!pin) pin = (x: any) => mutation.mutate(x);
 
-      // UNCOMMENT TO BREAK
-      mutation.mutate(json);
-    },
-    [mutation]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleEditorChange = useCallback(
+    (() => {
+      // check to see whenever the callback is generated
+      let id = Math.floor(Math.random() * 100000);
+
+      return (json: RemirrorJSON) => {
+        // Store the JSON in localStorage
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
+        console.log("change", id);
+
+        pin(json);
+      };
+    })(),
+    []
   );
 
   return (
