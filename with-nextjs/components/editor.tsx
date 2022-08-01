@@ -1,13 +1,43 @@
 import "remirror/styles/all.css";
-
-import { OnChangeJSON, Remirror, useRemirror } from "@remirror/react";
+import jsx from "refractor/lang/jsx.js";
+import typescript from "refractor/lang/typescript.js";
+import {
+  OnChangeJSON,
+  PlaceholderExtension,
+  Remirror,
+  TableExtension,
+  useRemirror,
+} from "@remirror/react";
 import { useCallback, useState } from "react";
-import type { RemirrorJSON } from "remirror";
-import { BoldExtension } from "remirror/extensions";
+import { ExtensionPriority, RemirrorJSON } from "remirror";
+import {
+  BlockquoteExtension,
+  BoldExtension,
+  BulletListExtension,
+  CodeBlockExtension,
+  CodeExtension,
+  HardBreakExtension,
+  HeadingExtension,
+  ItalicExtension,
+  LinkExtension,
+  ListItemExtension,
+  MarkdownExtension,
+  OrderedListExtension,
+  StrikeExtension,
+  TrailingNodeExtension,
+} from "remirror/extensions";
+import { useMutation } from "@tanstack/react-query";
 
 const STORAGE_KEY = "remirror-editor-content";
 
 const Editor: React.FC = () => {
+  const mutation = useMutation((data: RemirrorJSON) => {
+    return fetch("/api/hello", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  });
+
   const [initialContent] = useState<RemirrorJSON | undefined>(() => {
     // Retrieve the JSON from localStorage (or undefined if not found)
     const content = window.localStorage.getItem(STORAGE_KEY);
@@ -17,6 +47,9 @@ const Editor: React.FC = () => {
   const handleEditorChange = useCallback((json: RemirrorJSON) => {
     // Store the JSON in localStorage
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
+
+    // UNCOMMENT TO BREAK
+    // mutation.mutate(json);
   }, []);
 
   return (
@@ -30,7 +63,38 @@ interface MyEditorProps {
 }
 
 const CoreEditor: React.FC<MyEditorProps> = ({ onChange, initialContent }) => {
-  const { manager } = useRemirror({ extensions: () => [new BoldExtension()] });
+  const extensions = useCallback(
+    () => [
+      new LinkExtension({ autoLink: true }),
+      new BoldExtension(),
+      new StrikeExtension(),
+      new ItalicExtension(),
+      new HeadingExtension(),
+      new LinkExtension(),
+      new BlockquoteExtension(),
+      new BulletListExtension({ enableSpine: true }),
+      new OrderedListExtension(),
+      new ListItemExtension({
+        priority: ExtensionPriority.High,
+        enableCollapsible: true,
+      }),
+      new CodeExtension(),
+      new CodeBlockExtension({ supportedLanguages: [jsx, typescript] }),
+      new TrailingNodeExtension(),
+      new TableExtension(),
+      new MarkdownExtension({ copyAsMarkdown: false }),
+      /**
+       * `HardBreakExtension` allows us to create a newline inside paragraphs.
+       * e.g. in a list item
+       */
+      new HardBreakExtension(),
+    ],
+    []
+  );
+
+  const { manager } = useRemirror({
+    extensions,
+  });
   return (
     <div style={{ width: "100%", maxWidth: "500px" }}>
       <Remirror
